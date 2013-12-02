@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+require 'rubygems'
+require 'bundler/setup'
+
+require 'eventmachine'
+require 'frankenpins'
+require 'faye'
+
+NEXT_STATION_BUTTON_PIN = 2
+PREV_STATION_BUTTON_PIN = 0
+ROTARY_ENCODER_PIN_A    = 4
+ROTARY_ENCODER_PIN_B    = 5
+ON_OFF_BUTTON_PIN       = 3
+
+# Get foreman not to buffer logging output
+$stdout.sync = true
+
+EM.run do
+
+  @faye_url = 'http://localhost:3000/faye'
+  @client = Faye::Client.new(@faye_url)
+
+  # Next station button
+  next_station = Frankenpins::Button.new(:pin => NEXT_STATION_BUTTON_PIN, :pull => :up)
+  next_station.when :pressed do
+    puts 'Next station'
+    @client.publish('/station', 'next')
+  end
+
+  # Previous station button
+  previous_station = Frankenpins::Button.new(:pin => PREV_STATION_BUTTON_PIN, :pull => :up)
+  previous_station.when :pressed do
+    puts 'Previous station'
+    @client.publish('/station', 'previous')
+  end
+
+  last_time = Time.now.to_f
+
+  # Volume dial
+  volume_dial = Frankenpins::RotaryEncoder.new(:pin_a => ROTARY_ENCODER_PIN_A, :pin_b => ROTARY_ENCODER_PIN_B)
+  volume_dial.when :changed do |pos, direction|
+    current = Time.now.to_f
+    if current != (last_time + 100)
+      last_time = current
+      puts "VOLUME: position: #{pos}, direction: #{direction}"
+      @client.publish('/volume', 'up')   if direction == :clockwise
+      @client.publish('/volume', 'down') if direction == :anticlockwise
+    end
+  end
+
+  # On/off buttont (on volume dial)
+  on_off_button = Frankenpins::Button.new(:pin => ON_OFF_BUTTON_PIN, :pull => :up)
+  on_off_button.when :pressed do
+    puts 'On/off'
+    @client.publish('/power', {})
+  end
+
+  puts 'Physical interface ready'
+end
+
+# Frankenpins.wait
