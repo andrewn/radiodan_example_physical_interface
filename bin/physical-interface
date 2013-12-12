@@ -11,6 +11,7 @@ PREV_STATION_BUTTON_PIN = 0
 ROTARY_ENCODER_PIN_A    = 4
 ROTARY_ENCODER_PIN_B    = 5
 ON_OFF_BUTTON_PIN       = 3
+AVOID_BUTTON_PIN        = 1
 
 # Get foreman not to buffer logging output
 $stdout.sync = true
@@ -53,6 +54,13 @@ EM.run do
   on_off_button.when :pressed do
     puts 'On/off'
     @client.publish('/power', {})
+  end
+
+  # On/off buttont (on volume dial)
+  avoid_button = Frankenpins::Button.new(:pin => AVOID_BUTTON_PIN, :pull => :up)
+  avoid_button.when :pressed do
+    puts 'Avoid!'
+    @client.publish('/avoid', 'track')
   end
 
   puts 'Physical interface ready'

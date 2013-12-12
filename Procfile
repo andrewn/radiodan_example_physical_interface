@@ -1,1 +1,1 @@
-physical-interface: bundle exec ./bin/physical-interface
+physical-interface: bundle exec sudo ./bin/physical-interface
